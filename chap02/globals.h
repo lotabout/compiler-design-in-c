@@ -17,7 +17,8 @@ CLASS int No_lines I( = 0); /* Supress #line directive. */
 CLASS int Unix  I( = 0 ); /* Use UNIX-style newlines */
 CLASS int Public I( = 0); /* make static symbols public */
 CLASS char *Templage I( = "lex.par"); /* State-machine driver template */
-CLASS int Actual_lineno I( = 1); /* Line number of first line of a
+CLASS int Actual_lineno I( = 1); /* Current input line number */
+CLASS int Lineno I( = 1 );      /* Line number of first line of a
                                     multiple-line rule */
 CLASS char Input_buf[MAXINP];   /* Line buffer for input */
 CLASS char *Input_file_name;    /* Input file name (for #line) */

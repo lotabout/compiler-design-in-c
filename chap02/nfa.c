@@ -6,6 +6,13 @@
 #include <string.h>
 
 /* not yet have these headers below */
+#include "tools/debug.h"
+#include "tools/set.h"
+#include "tools/hash.h"
+#include "compiler.h"
+#include "stack.h"
+
+
 #include "nfa.h"
 #include "globals.h"
 
@@ -173,4 +180,126 @@ static char *save(char *str)
     len = textp - startp;
     Savep += (len/sizeof(int)) + (len % sizeof(int) != 0);
     return startp;
+}
+
+/*-----------------------------------------------------------------------------
+ * macro support
+ *---------------------------------------------------------------------------*/
+#define MAC_NAME_MAX 34     /* maximum name length */
+#define MAC_TEXT_MAX 80     /* maximum amount of expansion text */
+
+typedef struct _MACRO {
+    char name[MAC_NAME_MAX];
+    char text[MAC_TEXT_MAX];
+} MACRO;
+
+static HASH_TAB *Macros;    /* symbol table for macro definition */
+
+void new_macro(char *def)
+{
+    /* Add a new macro to the table, If two macros have the same name, the
+     * second one takes precedence. A definition takes the form:
+     *      name <whitespace> text [<whitespace>]
+     * whitespace at the end of the line is ignored.
+     */
+
+    /* used for hash function */
+    unsigned hash_add(void);    /* TODO: figure out its usage */
+
+    char *name;     /* name component of macro definition */
+    char *text;     /* text part of macro definition */
+    char *edef;     /* pointer to end of text part */
+    MACRO *p;
+    static int first_time = 1;
+
+    if (first_time) {
+        first_time = 0;
+        Macros = maketab(31, hash_add, strcmp);
+    }
+
+    for (name = def; *def && !isspace(*def); def++) {
+        /* Isolate name */
+    }
+
+    if (*def) {
+        *def++ = '\0';
+    }
+
+    /* Isolate the definition text. This process is complicated because you
+     * need to discard any trailing whitespace on the line. The first while
+     * loop skips the preceding whitespace. The for loop is looking for end of
+     * string. If you find a white character (and the \n at the end of string
+     * is whitespace), remember the position as a potential end of string */
+    while (isspace(*def)) {
+        /* skip up to macro body */
+        ++def;
+    }
+
+    text = def;     /* remember start of replacement text */
+    edef = NULL;    /* strip trailing white space */
+    while (*def) {
+        if (!isspace(*def)) {
+            ++def;
+        } else {
+            for (edef = def++; isspace(*def); ++def) {
+                /* pass */
+            }
+        }
+    }
+
+    if (edef) {
+        *def = '\0';   
+    }
+
+    /* add the macro to the symbol table */
+    p = (MACRO *) newsym(sizeof(MACRO));
+    strncpy(p->name, name, MAC_NAME_MAX);
+    strncpy(p->text, text, MAC_TEXT_MAX);
+    addsym(Macros, p);
+}
+
+static char *expand_macro(char **namep)
+{
+    /* Return a pointer to the contents of a macro having the indicated name.
+     * Abort with a message if no macro exits. The macro name includes the
+     * brackets, which are destroyed by the expansion process. *namep is
+     * modified to point past the close brace. 
+     */
+
+    char *p = NULL;
+    MACRO *mac = NULL;
+
+    p = strchr(++(*namep), '}'); /* skip { and find } */
+    if (p == NULL) {
+        parse_err(E_BADMAC);
+    } else {
+        *p++ = '\0';    /* Overwrite close brace */
+
+        mac = (MACRO *) findsym(Macros, *namep);
+        if (mac == NULL) {
+            parse_err(E_NOMAC);
+        }
+
+        *namep = p;
+        return mac->text;
+    }
+    return "ERROR";     /* If you get here, it's a bug */
+}
+
+static print_a_macro(MACRO *mac)
+{
+    /* Workhorse function function needed by ptab() call in printmacs(), below
+     */
+    print("%-16s--[%s]--\n", mac->name, mac->text);
+}
+
+/* print all macros to stdout */
+void printmacs()
+{
+    if (!Macros) {
+        printf("\tThere are no macros\n");
+    } else {
+        printf("\nMACROS:\n");
+        ptab(Macros, print_a_macro, NULL, 1);
+    }
 }

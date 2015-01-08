@@ -3,9 +3,10 @@ MAIN = main.o
 PLAIN = plain.o
 IMPROVED = improved.o
 RETVAL = retval.o
-EXES = plain improved retval
+ARGS = args.o
+EXES = plain improved retval args
 
-all: plain improved retval
+all: plain improved retval args
 
 %.o:%.c
 	gcc -c $<
@@ -19,9 +20,12 @@ improved: ${LIBS} ${MAIN} ${IMPROVED}
 retval: ${LIBS} ${MAIN} ${RETVAL}
 	gcc -o $@ $^
 
+args: ${LIBS} ${MAIN} ${ARGS}
+	gcc -o $@ $^
+
 .PHONY: clean
 clean:
-	rm ${LIBS} ${MAIN} ${IMPROVED} ${RETVAL} ${PLAIN}
+	rm ${LIBS} ${MAIN} ${IMPROVED} ${RETVAL} ${PLAIN} ${ARGS}
 
 .PHONY: clean-exes
 clean-exes:
